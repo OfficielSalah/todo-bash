@@ -1,0 +1,32 @@
+not empty liste :
+   length depends on the longest task
+ -------------------
+( 1 - test          )
+( 1 - test          )
+( 1 - test          )
+( 1 - test          )
+( 1 - test          )
+( 1 - test          )
+ ------------------- 
+
+empty liste :
+ ---
+(   )
+ ---
+
+options :
+   create liste
+   show liste
+   add to liste
+   remove by index
+   filtrage
+   erase liste
+   help ((show commands))
+
+commandes :
+   todo create [nom du ficher]
+   todo show [nom du liste]
+   todo add liste v1 v2 v3
+   todo done liste index1 index2
+   todo rm liste index
+   todo erase liste
