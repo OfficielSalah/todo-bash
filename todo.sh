@@ -24,8 +24,13 @@ function selectOption() {
         shift
         eraseListe "$@"
         ;;
+    help)
+        displayHelp
+        ;;
     esac
 }
+
+#### create OPTION####
 
 function createListe() {
     nameOfList=$1
@@ -34,12 +39,16 @@ function createListe() {
     echo "La Liste $nameOfList est crée"
 }
 
+#### erase OPTION####
+
 function eraseListe() {
     nameOfList=$1
 
     rm "$nameOfList"
     echo "La Liste $nameOfList est supprimée"
 }
+
+#### show OPTION####
 
 function showListe() {
     nameOfList=$1
@@ -80,7 +89,7 @@ function displayList() {
 
     local i=1
 
-    while read -r line || [ -n "$line" ]; do
+    while read -r line; do
         echo -n "(  ${i}. $line"
         local reste=$((uppAndDown - ${#line} - 5))
         local j=0
@@ -94,25 +103,53 @@ function displayList() {
     afficherTiret "$@"
 }
 
+#### add OPTION####
+
 function addToListe() {
     nameOfList=$1
-    calcNumberOfLines "$@"
+    calcNumberOfLines
     shift
     if [[ $((numberOfLines + $#)) -ge 10 ]]; then
-        echo "Le Nombre limite de tasks dans chacun liste est 9 tasks"
+        echo "Le Nombre limite des tâches dans chaque liste est 9 tasks"
         return 1
     fi
     for task in "$@"; do
         echo "$task" >>"$nameOfList"
-        echo "la task : \"$task\" est ajoutée "
+        echo "la tâche : \"$task\" est ajoutée à la liste $nameOfList"
     done
 }
 
 function calcNumberOfLines() {
     numberOfLines=0
-    while read -r line || [ -n "$line" ]; do
+    while read -r line; do
         numberOfLines=$((numberOfLines + 1))
     done <"$nameOfList"
+}
+
+#### done OPTION####
+
+function calcSortedArr() {
+    array=("$@")
+
+    IFS=$'\n'
+    sortedArr=($(printf "%s\n" "${array[@]}" | sort -r))
+    unset IFS
+}
+function doneInListe() {
+    nameOfList=$1
+    shift
+    calcSortedArr "$@"
+    for index in "${sortedArr[@]}"; do
+        sed -i "${index}d" "$nameOfList"
+        echo "la tâche d'index : $index est supprimée de la liste $nameOfList "
+    done
+
+}
+
+#### help OPTION####
+
+function displayHelp() {
+    echo "help"
 }
 
 ####MAIN####
