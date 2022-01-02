@@ -20,10 +20,6 @@ function selectOption() {
         shift
         doneInListe "$@"
         ;;
-    rm)
-        shift
-        removeFromListe "$@"
-        ;;
     erase)
         shift
         eraseListe "$@"
@@ -33,11 +29,21 @@ function selectOption() {
 
 function createListe() {
     nameOfList=$1
+
     touch "$nameOfList"
     echo "La Liste $nameOfList est crée"
 }
+
+function eraseListe() {
+    nameOfList=$1
+
+    rm "$nameOfList"
+    echo "La Liste $nameOfList est supprimée"
+}
+
 function showListe() {
     nameOfList=$1
+
     if [[ ! -s "$nameOfList" ]]; then
         echo " -- "
         echo "(  )"
@@ -47,23 +53,7 @@ function showListe() {
     fi
 }
 
-function eraseListe() {
-    nameOfList=$1
-    rm "$nameOfList"
-    echo "La Liste $nameOfList est supprimée"
-}
-
-function afficherTiret() {
-
-    echo -n " "
-    for ((i = 0; i < "$uppAndDown"; i++)); do
-        echo -n "-"
-    done
-    echo " "
-}
-
 function calcUppAndDown() {
-    nameOfList=$1
     local longestTask=0
 
     while read line; do
@@ -72,22 +62,36 @@ function calcUppAndDown() {
         fi
     done <"$1"
 
-    uppAndDown=$((longestTask + 5))
-    return uppAndDown
+    uppAndDown=$((longestTask + 7))
+}
 
+function afficherTiret() {
+    echo -n " "
+    calcUppAndDown "$@"
+    for ((i = 0; i < "$uppAndDown"; i++)); do
+        echo -n "-"
+    done
+    echo " "
 }
 
 function displayList() {
     afficherTiret "$@"
 
-    i=1
+    local i=1
 
     while read line; do
-        echo "(  ${i}. $line )"
+        echo -n "(  ${i}. $line"
+        for ((j = 0; j < $((uppAndDown - ${#line} - 5)); j++)); do
+            echo -n " "
+        done
+        echo ")"
         i=$((i + 1))
     done <"$1"
 
     afficherTiret "$@"
+}
+
+function addToListe() {
 }
 
 ####MAIN####

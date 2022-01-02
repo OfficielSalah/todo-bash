@@ -39,8 +39,6 @@ function addToListe() {
 }
 function doneInListe() {
 }
-function removeFromListe() {
-}
 '
 
 ####MAIN####

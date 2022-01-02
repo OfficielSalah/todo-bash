@@ -1,7 +1,7 @@
 not empty liste :
    length depends on the longest task
  -------------------
-( 1 - test          )
+( 1 - testtyjtyjtyj )
 ( 1 - test          )
 ( 1 - test          )
 ( 1 - test          )
@@ -18,7 +18,6 @@ options :
    create liste
    show liste
    add to liste
-   remove by index
    filtrage
    erase liste
    help ((show commands))
