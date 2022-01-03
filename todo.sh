@@ -143,7 +143,6 @@ function doneInListe() {
         sed -i "${index}d" "$nameOfList"
         echo "la tâche d'index : $index est supprimée de la liste $nameOfList "
     done
-
 }
 
 #### help OPTION####

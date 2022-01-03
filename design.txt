@@ -20,6 +20,9 @@ options :
    add to liste
    remove from liste
    erase liste
+   move task
+   filtrage
+   lister les listes
    help ((show commands))
 
 commandes :
