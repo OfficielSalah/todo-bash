@@ -4,27 +4,27 @@ option=$1
 
 function selectOption() {
     case $option in
-    create)
+    -c | create)
         shift
         createListe "$@"
         ;;
-    show)
+    -s | show)
         shift
         showListe "$@"
         ;;
-    add)
+    -a | add)
         shift
         addToListe "$@"
         ;;
-    done)
+    -d | done)
         shift
         doneInListe "$@"
         ;;
-    erase)
+    -e | erase)
         shift
         eraseListe "$@"
         ;;
-    help)
+    -h | help)
         displayHelp
         ;;
     esac
@@ -155,7 +155,29 @@ function doneInListe() {
 #### help OPTION####
 
 function displayHelp() {
-    echo "help"
+    printf "@Usage: ./todo [OPTIONS] [LIST] [INDEX|ITEM]
+
+@OPTIONS:
+    -h,help This help message.
+    -c,create Create a new list.
+    -a,add Add an item to the list.
+    -d,done Remove an item from the list by INDEX number.
+    -e,erase Erase list.
+    -s,show Display the list.
+@LIST:
+    Name of list.
+@INDEX:
+    Integers:Index number of item.
+@ITEM:
+    String Todo ITEM.
+@EXAMPLES:
+    ./todo create list5
+            Create list under the name list5.
+    ./todo -a list5 \"Something to do\"
+            add \"Something to do\" to list5
+    ./todo show list5
+            list all the task in the list5.
+"
 }
 
 ####MAIN####
