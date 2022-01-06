@@ -21,7 +21,9 @@ options :
    remove from liste
    erase liste
    move task
-   filtrage
+   filtrage{
+      nombre de tasks
+   }
    lister les listes
    help ((show commands))
 

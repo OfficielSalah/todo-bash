@@ -71,7 +71,13 @@ function calcUppAndDown() {
         fi
     done <"$1"
 
-    uppAndDown=$((longestTask + 7))
+    calcNumberOfLines "$@"
+
+    if [[ "$numberOfLines" -ge 10 ]]; then
+        uppAndDown=$((longestTask + 8))
+    else
+        uppAndDown=$((longestTask + 7))
+    fi
 }
 
 function afficherTiret() {
@@ -91,7 +97,11 @@ function displayList() {
 
     while read -r line; do
         echo -n "(  ${i}. $line"
-        local reste=$((uppAndDown - ${#line} - 5))
+        if [[ "$i" -le 9 ]]; then
+            local reste=$((uppAndDown - ${#line} - 5))
+        else
+            local reste=$((uppAndDown - ${#line} - 6))
+        fi
         local j=0
         for ((j; j < reste; j++)); do
             echo -n " "
@@ -107,12 +117,8 @@ function displayList() {
 
 function addToListe() {
     nameOfList=$1
-    calcNumberOfLines
+    calcNumberOfLines "$@"
     shift
-    if [[ $((numberOfLines + $#)) -ge 10 ]]; then
-        echo "Le Nombre limite des tâches dans chaque liste est 9 tasks"
-        return 1
-    fi
     for task in "$@"; do
         echo "$task" >>"$nameOfList"
         echo "la tâche : \"$task\" est ajoutée à la liste $nameOfList"
@@ -120,6 +126,7 @@ function addToListe() {
 }
 
 function calcNumberOfLines() {
+    nameOfList=$1
     numberOfLines=0
     while read -r line; do
         numberOfLines=$((numberOfLines + 1))
