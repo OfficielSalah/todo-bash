@@ -24,6 +24,7 @@ A bash script that manages todo lists using lots of functionalities
     -a,add Add an item to the list.
     -d,done Remove an item from the list by INDEX number.
     -e,erase Erase list.
+    -m,move Move task from list to the end of another list.
     -s,show Display the list.
 @LIST:
     Name of list.

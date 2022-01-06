@@ -41,7 +41,7 @@ function selectOption() {
 #### create OPTION####
 
 function createListe() {
-    createhandling "$@"
+    createHandling "$@"
     local nameOfList=$1
 
     touch "$nameOfList"
@@ -51,7 +51,7 @@ function createListe() {
 #### erase OPTION####
 
 function eraseListe() {
-    erasehandling "$@"
+    eraseHandling "$@"
     local nameOfList=$1
 
     rm "$nameOfList"
@@ -61,7 +61,7 @@ function eraseListe() {
 #### show OPTION####
 
 function showListe() {
-    showhandling "$@"
+    showHandling "$@"
     nameOfList=$1
 
     if [[ ! -s "$nameOfList" ]]; then
@@ -159,7 +159,7 @@ function doneInListe() {
     calcReversedSortedArr "$@"
     for index in "${reversedSortedArr[@]}"; do
         sed -i "${index}d" "$nameOfList"
-        echo "la tâche d'index : $index est supprimée de la liste $nameOfList "
+        echo "la tâche d'index : \"$index\" est supprimée de la liste $nameOfList "
     done
 }
 
@@ -212,9 +212,10 @@ function displayHelp() {
 @OPTIONS:
     -h,help Show help message.
     -c,create Create a new list.
+    -e,erase Erase list.
     -a,add Add an item to the list.
     -d,done Remove an item from the list by INDEX number.
-    -e,erase Erase list.
+    -m,move Move task from list to the end of another list.
     -s,show Display the list.
 @LIST:
     Name of list.
