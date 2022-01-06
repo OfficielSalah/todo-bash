@@ -24,6 +24,10 @@ function selectOption() {
         shift
         eraseListe "$@"
         ;;
+    -m | move)
+        shift
+        moveTask "$@"
+        ;;
     -h | help)
         displayHelp
         ;;
@@ -70,7 +74,6 @@ function showListe() {
 }
 
 function calcNumberOfLines() {
-    nameOfList=$1
     numberOfLines=0
     while read -r line; do
         numberOfLines=$((numberOfLines + 1))
@@ -84,7 +87,7 @@ function calcUppAndDown() {
         if [[ "${#line}" -gt $longestTask ]]; then
             longestTask=${#line}
         fi
-    done <"$1"
+    done <"$nameOfList"
 
     calcNumberOfLines "$@"
 
@@ -123,7 +126,7 @@ function displayList() {
         done
         echo ")"
         i=$((i + 1))
-    done <"$1"
+    done <"$nameOfList"
 
     afficherTiret "$@"
 }
@@ -131,8 +134,8 @@ function displayList() {
 #### add OPTION####
 
 function addToListe() {
-    addhandling "$@"
-    nameOfList=$1
+    addHandling "$@"
+    local nameOfList=$1
     shift
     for task in "$@"; do
         echo "$task" >>"$nameOfList"
@@ -142,22 +145,63 @@ function addToListe() {
 
 #### done OPTION####
 
+function calcReversedSortedArr() {
+    array=("$@")
+
+    IFS=$'\n'
+    reversedSortedArr=($(printf "%s\n" "${array[@]}" | sort -r))
+    unset IFS
+}
+function doneInListe() {
+    doneHandling "$@"
+    local nameOfList=$1
+    shift
+    calcReversedSortedArr "$@"
+    for index in "${reversedSortedArr[@]}"; do
+        sed -i "${index}d" "$nameOfList"
+        echo "la tâche d'index : $index est supprimée de la liste $nameOfList "
+    done
+}
+
+#### move OPTION####
+
 function calcSortedArr() {
     array=("$@")
 
     IFS=$'\n'
-    sortedArr=($(printf "%s\n" "${array[@]}" | sort -r))
+    sortedArr=($(printf "%s\n" "${array[@]}" | sort))
     unset IFS
 }
-function doneInListe() {
-    donehandling "$@"
-    nameOfList=$1
+
+function moveTask() {
+    moveHandling "$@"
+    local nameOfFirstList=$1
+    local nameOfSecondList=$2
+
     shift
+    shift
+
     calcSortedArr "$@"
-    for index in "${sortedArr[@]}"; do
-        sed -i "${index}d" "$nameOfList"
-        echo "la tâche d'index : $index est supprimée de la liste $nameOfList "
-    done
+
+    declare -a tasksToMove
+    local i=1
+    local j=0
+
+    while read -r line; do
+        if [[ "$i" -eq $((${sortedArr[$j]} + 0)) ]]; then
+            tasksToMove[${#tasksToMove[@]}]=$line
+            j=$((j + 1))
+        fi
+
+        i=$((i + 1))
+    done <"$nameOfFirstList"
+
+    addToListe "$nameOfSecondList" "${tasksToMove[@]}"
+
+    calcReversedSortedArr "$@"
+
+    doneInListe "$nameOfFirstList" "${reversedSortedArr[@]}"
+
 }
 
 #### help OPTION####
@@ -166,7 +210,7 @@ function displayHelp() {
     printf "@Usage: ./todo [OPTIONS] [LIST] [INDEX|ITEM]
 
 @OPTIONS:
-    -h,help This help message.
+    -h,help Show help message.
     -c,create Create a new list.
     -a,add Add an item to the list.
     -d,done Remove an item from the list by INDEX number.
@@ -189,7 +233,7 @@ function displayHelp() {
 }
 
 ####Exception Handling####
-function createhandling() {
+function createHandling() {
     local nameOfList=$1
     if [[ -d "$nameOfList" ]]; then
         echo "Un Dossier existe déja sous le nom $nameOfList" >&2
@@ -200,56 +244,56 @@ function createhandling() {
     fi
 }
 
-function erasehandling() {
-    local nameOfList=$1
-    if [[ -d "$nameOfList" ]]; then
-        echo "vous êtes en train de supprimer Un Dossier qui existe déja sous le nom $nameOfList" >&2
-        exit 1
-    fi
-    fileExist "$@"
+function eraseHandling() {
+    fileExistOrIsDirectory "$1"
 }
 
-function showhandling() {
-    local nameOfList=$1
-    if [[ -d "$nameOfList" ]]; then
-        echo "la liste \"$nameOfList\" est actuellement un dossier" >&2
-        exit 1
-    fi
-    fileExist "$@"
+function showHandling() {
+    fileExistOrIsDirectory "$1"
 }
 
-function addhandling() {
-    local nameOfList=$1
-    if [[ -d "$nameOfList" ]]; then
-        echo "vous êtes en train d'ajouter des élements a une liste sous le nom $nameOfList mais c'est le nom d'un dossier" >&2
-        exit 1
-    fi
-    fileExist "$@"
+function addHandling() {
+    fileExistOrIsDirectory "$1"
+
     shift
-    if [[ "$#" -le 0 ]]; then
-        echo "vous devez au moins entrer une task comme argument" >&2
-        exit 1
-    fi
+
+    checkArguments "$@"
 }
 
-function donehandling() {
-    local nameOfList=$1
-    if [[ -d "$nameOfList" ]]; then
-        echo "la liste \"$nameOfList\" est actuellement un dossier" >&2
-        exit 1
-    fi
-    fileExist "$@"
+function doneHandling() {
+    fileExistOrIsDirectory "$1"
+
     shift
-    if [[ "$#" -le 0 ]]; then
-        echo "vous devez au moins entrer un index comme argument" >&2
-        exit 1
-    fi
+
+    checkArguments "$@"
 }
 
-function fileExist() {
+function moveHandling() {
+    fileExistOrIsDirectory "$1"
+    fileExistOrIsDirectory "$2"
+
+    shift
+    shift
+
+    checkArguments "$@"
+}
+
+function fileExistOrIsDirectory() {
     local nameOfList=$1
     if [[ ! -e "$nameOfList" ]]; then
         echo "la liste \"$nameOfList\" n'existe pas" >&2
+        exit 1
+    fi
+    if [[ -d "$nameOfList" ]]; then
+        echo "la liste \"$nameOfList\" est actuellement un dossier" >&2
+        exit 1
+    fi
+}
+
+function checkArguments() {
+
+    if [[ "$#" -le 0 ]]; then
+        echo "vous devez entrer au moins un index comme argument" >&2
         exit 1
     fi
 }

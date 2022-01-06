@@ -19,7 +19,7 @@ A bash script that manages todo lists using lots of functionalities
 @Usage: ./todo [OPTIONS] [LIST] [INDEX|ITEM]
 
 @OPTIONS:
-    -h,help This help message.
+    -h,help Show help message.
     -c,create Create a new list.
     -a,add Add an item to the list.
     -d,done Remove an item from the list by INDEX number.
