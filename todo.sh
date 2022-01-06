@@ -27,13 +27,18 @@ function selectOption() {
     -h | help)
         displayHelp
         ;;
+    *)
+        echo "Look at the help manuel because \"$option\" is not included in the options list"
+        exit 1
+        ;;
     esac
 }
 
 #### create OPTION####
 
 function createListe() {
-    nameOfList=$1
+    createhandling "$@"
+    local nameOfList=$1
 
     touch "$nameOfList"
     echo "La Liste $nameOfList est crée"
@@ -42,7 +47,8 @@ function createListe() {
 #### erase OPTION####
 
 function eraseListe() {
-    nameOfList=$1
+    erasehandling "$@"
+    local nameOfList=$1
 
     rm "$nameOfList"
     echo "La Liste $nameOfList est supprimée"
@@ -51,6 +57,7 @@ function eraseListe() {
 #### show OPTION####
 
 function showListe() {
+    showhandling "$@"
     nameOfList=$1
 
     if [[ ! -s "$nameOfList" ]]; then
@@ -60,6 +67,14 @@ function showListe() {
     else
         displayList "$@"
     fi
+}
+
+function calcNumberOfLines() {
+    nameOfList=$1
+    numberOfLines=0
+    while read -r line; do
+        numberOfLines=$((numberOfLines + 1))
+    done <"$nameOfList"
 }
 
 function calcUppAndDown() {
@@ -116,21 +131,13 @@ function displayList() {
 #### add OPTION####
 
 function addToListe() {
+    addhandling "$@"
     nameOfList=$1
-    calcNumberOfLines "$@"
     shift
     for task in "$@"; do
         echo "$task" >>"$nameOfList"
         echo "la tâche : \"$task\" est ajoutée à la liste $nameOfList"
     done
-}
-
-function calcNumberOfLines() {
-    nameOfList=$1
-    numberOfLines=0
-    while read -r line; do
-        numberOfLines=$((numberOfLines + 1))
-    done <"$nameOfList"
 }
 
 #### done OPTION####
@@ -143,6 +150,7 @@ function calcSortedArr() {
     unset IFS
 }
 function doneInListe() {
+    donehandling "$@"
     nameOfList=$1
     shift
     calcSortedArr "$@"
@@ -178,6 +186,72 @@ function displayHelp() {
     ./todo show list5
             list all the task in the list5.
 "
+}
+
+####Exception Handling####
+function createhandling() {
+    local nameOfList=$1
+    if [[ -d "$nameOfList" ]]; then
+        echo "Un Dossier existe déja sous le nom $nameOfList" >&2
+        exit 1
+    elif [[ -f "$nameOfList" && -s "$nameOfList" ]]; then
+        echo "Un fichier sous le nom $nameOfList existe déja" >&2
+        exit 1
+    fi
+}
+
+function erasehandling() {
+    local nameOfList=$1
+    if [[ -d "$nameOfList" ]]; then
+        echo "vous êtes en train de supprimer Un Dossier qui existe déja sous le nom $nameOfList" >&2
+        exit 1
+    fi
+    fileExist "$@"
+}
+
+function showhandling() {
+    local nameOfList=$1
+    if [[ -d "$nameOfList" ]]; then
+        echo "la liste \"$nameOfList\" est actuellement un dossier" >&2
+        exit 1
+    fi
+    fileExist "$@"
+}
+
+function addhandling() {
+    local nameOfList=$1
+    if [[ -d "$nameOfList" ]]; then
+        echo "vous êtes en train d'ajouter des élements a une liste sous le nom $nameOfList mais c'est le nom d'un dossier" >&2
+        exit 1
+    fi
+    fileExist "$@"
+    shift
+    if [[ "$#" -le 0 ]]; then
+        echo "vous devez au moins entrer une task comme argument" >&2
+        exit 1
+    fi
+}
+
+function donehandling() {
+    local nameOfList=$1
+    if [[ -d "$nameOfList" ]]; then
+        echo "la liste \"$nameOfList\" est actuellement un dossier" >&2
+        exit 1
+    fi
+    fileExist "$@"
+    shift
+    if [[ "$#" -le 0 ]]; then
+        echo "vous devez au moins entrer un index comme argument" >&2
+        exit 1
+    fi
+}
+
+function fileExist() {
+    local nameOfList=$1
+    if [[ ! -e "$nameOfList" ]]; then
+        echo "la liste \"$nameOfList\" n'existe pas" >&2
+        exit 1
+    fi
 }
 
 ####MAIN####
