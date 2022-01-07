@@ -16,7 +16,7 @@ A bash script that manages todo lists using lots of functionalities
 > Use the script in the exact same way.
 
 ```Bash
-@Usage: ./todo [OPTIONS] [LIST] [INDEX|ITEM]
+@Usage: ./todo.sh [OPTIONS] [LIST] [INDEX|ITEM]
 
 @OPTIONS:
     -h,help Show help message.
@@ -33,11 +33,11 @@ A bash script that manages todo lists using lots of functionalities
 @ITEM:
     String Todo ITEM.
 @EXAMPLES:
-    ./todo create list5
+    ./todo.sh create list5
             Create list under the name list5.
-    ./todo -a list5 "Something to do"
+    ./todo.sh -a list5 "Something to do"
             add "Something to do" to list5
-    ./todo show list5
+    ./todo.sh show list5
             list all the task in the list5.
 ```
 
