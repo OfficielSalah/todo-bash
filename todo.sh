@@ -80,7 +80,7 @@ function calcNumberOfLines() {
     while read -r line; do
         # chaque fois j'incrémente la variable numberOfLines jusqu'à ce que le fichier est parcoru
         numberOfLines=$((numberOfLines + 1))
-    done <"$nameOfList"
+    done <"$1"
 }
 
 function calcUppAndDown() {
@@ -274,25 +274,34 @@ function addHandling() {
     fileExistOrIsDirectory "$1"
 
     shift
-
+    for task in "$@"; do
+        if [[ -z "$task" ]]; then
+            echo "l'un des arguments est une chaîne vide"
+            exit 1
+        fi
+    done
     checkArguments "$@"
 }
 
 function doneHandling() {
     fileExistOrIsDirectory "$1"
+    calcNumberOfLines "$1"
 
     shift
 
+    checkIndexInRange "$@"
     checkArguments "$@"
 }
 
 function moveHandling() {
     fileExistOrIsDirectory "$1"
     fileExistOrIsDirectory "$2"
+    calcNumberOfLines "$1"
 
     shift
     shift
 
+    checkIndexInRange "$@"
     checkArguments "$@"
 }
 
@@ -309,11 +318,19 @@ function fileExistOrIsDirectory() {
 }
 
 function checkArguments() {
-
     if [[ "$#" -le 0 ]]; then
-        echo "vous devez entrer au moins un index comme argument" >&2
+        echo "vous devez entrer au moins un indice comme argument" >&2
         exit 1
     fi
+}
+
+function checkIndexInRange() {
+    for index in "$@"; do
+        if [[ "$index" -gt $numberOfLines ]]; then
+            echo "Aucun tâche ne correspond à l'indice : \"$index\" "
+            exit 1
+        fi
+    done
 }
 
 ####  MAIN ####
