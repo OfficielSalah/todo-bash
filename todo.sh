@@ -5,7 +5,7 @@ function selectOption() {
     local option=$1
     case $option in
     -c | create)
-        shift # shift permet de faire sauter un argument
+        shift # shift permet de sauter un argument
         createListe "$@"
         ;;
     -s | show)
@@ -32,7 +32,7 @@ function selectOption() {
         displayHelp
         ;;
     *)
-        echo "Look at the help manuel because \"$option\" is not included in the options list"
+        echo "Veuillez voir le manuel d'utilisation car l'option : \"$option\" n'est pas inclu"
         exit 1
         ;;
     esac
@@ -41,7 +41,7 @@ function selectOption() {
 #### create OPTION ####
 
 function createListe() {
-    createHandling "$@"
+    createHandling "$1"
     local nameOfList=$1
 
     touch "$nameOfList"
@@ -51,7 +51,7 @@ function createListe() {
 #### erase OPTION ####
 
 function eraseListe() {
-    eraseHandling "$@"
+    eraseHandling "$1"
     local nameOfList=$1
 
     rm "$nameOfList"
@@ -61,7 +61,7 @@ function eraseListe() {
 #### show OPTION ####
 
 function showListe() {
-    showHandling "$@"
+    showHandling "$1"
     nameOfList=$1
     # je teste si le liste est vide
     if [[ ! -s "$nameOfList" ]]; then
@@ -70,12 +70,12 @@ function showListe() {
         echo " -- "
     else
         # si la liste n'est pas vide je fais appel a la fonction displayList
-        displayList "$@"
+        displayList "$1"
     fi
 }
 # cette fonction va m'aider à résoudre le problème d'un fichier qui contient plus de 10 ligne parceque les nombres < 10 prend qu'un seul espace alors que >10 prend 2 espace
 function calcNumberOfLines() {
-    # la variable numberOfLines va me permettre de stocker le nombre de ligne dans le fichier (numberOfLines initialisée a 0)
+    # la variable numberOfLines va me permettre de stocker le nombre de ligne d'un fichier (numberOfLines initialisée a 0)
     numberOfLines=0
     while read -r line; do
         # chaque fois j'incrémente la variable numberOfLines jusqu'à ce que le fichier est parcoru
@@ -87,7 +87,7 @@ function calcUppAndDown() {
     # la variable longestTask va me permettre de stocker la longeur de la plus long tâche (longestTask initialisée a 0)
     local longestTask=0
     # je parcours le fichier qui porte le même nom que la liste ligne par ligne par la fonction read
-    while read -r line || [ -n "$line" ]; do
+    while read -r line; do
         # si la longeur de la ligne courant est plus grand que la variable longestTask je change la variable longestTask
         if [[ "${#line}" -gt $longestTask ]]; then
             longestTask=${#line}
@@ -107,7 +107,7 @@ function calcUppAndDown() {
 function afficherTiret() {
     echo -n " "
     # pour savoir le nombre de tirets a afficher je fais appel a la fonction calcUppAndDown
-    calcUppAndDown "$@"
+    calcUppAndDown "$1"
     local i=0
     # je printe les tirets
     for ((i; i < "$uppAndDown"; i++)); do
@@ -118,7 +118,7 @@ function afficherTiret() {
 
 function displayList() {
     # afficherTiret permet d'afficher les tirets (-------) qui fait part de l'affichage mais avec une facon dynamique
-    afficherTiret "$@"
+    afficherTiret "$1"
     #la variable i va me permettre de sauvgarder l'indece de chaque tâche
     local i=1
 
@@ -132,7 +132,8 @@ function displayList() {
         else
             local reste=$((uppAndDown - ${#line} - 6))
         fi
-        # la variable reste va me permettre de stocker le nombre d'espace que je dois printer avant la )
+        # la variable reste va me permettre de stocker le nombre d'espace que je dois printer avant la ")"
+        # j'affiche la deuxiéme partie de la ligne qui présente la tâche
         local j=0
         for ((j; j < reste; j++)); do
             echo -n " "
@@ -141,7 +142,7 @@ function displayList() {
         i=$((i + 1))
     done <"$nameOfList"
 
-    afficherTiret "$@"
+    afficherTiret "$1"
 }
 
 #### add OPTION ####
@@ -156,34 +157,47 @@ function addToListe() {
         echo "la tâche : \"$task\" est ajoutée à la liste $nameOfList"
     done
 }
+#### sort Functions ####
 
-#### done OPTION ####
+function eraseDuplicateValues() {
+    # cette fonction va me permettre d'éleminer les éléments dupliquées (1 2 2 3) devient (1 2 3)
+    local array=("$@")
+    #printf permet de lister les différentes indexs dans la variable array(-u pour éleminer les éléments dupliquées)
+    unique=($(printf "%s\n" "${array[@]}" | sort -u))
+}
 
 function calcReversedSortedArr() {
     # cette fonction va me permettre d'avoir un tableau d'indices trier d'une facon inverse (3 5 1) devient (5 3 1)
-    array=("$@")
-    # printf permet de lister les différentes indexs dans la variable array (-r pour trier d'une facon inverse)
+    local array=("$@")
+    # (-r pour trier d'une facon inverse)
     reversedSortedArr=($(printf "%s\n" "${array[@]}" | sort -r))
 }
+
+function calcSortedArr() {
+    # cette fonction va me permettre d'avoir un tableau d'indices trier d'une facon (3 5 1) devient (1 3 5)
+    local array=("$@")
+    sortedArr=($(printf "%s\n" "${array[@]}" | sort))
+}
+
+#### done OPTION ####
+
 function doneInListe() {
     doneHandling "$@"
     local nameOfList=$1
     shift
+    # la fonction eraseDuplicateValues va me permettre de résoudre un probléme de suppression parceque par exemple si l'un des indices est dupliquée (2 2) alors aprés que je supprime la ligne d'indice 2 je vais supprimer la ligne d'indice 3 aussi car son indice devient 2
+    eraseDuplicateValues "$@"
     # le fonction calcReversedSortedArr va me permettre de résoudre un probléme de suppression parceque par exemple si les indices des lignes a supprimer sont 1 5 alors si je commence par supprimer la ligne 1 la ligne d'indice 5 va changer l'indice a 4
-    calcReversedSortedArr "$@"
+    calcReversedSortedArr "${unique[@]}"
     for index in "${reversedSortedArr[@]}"; do
         # je boucle sur le tableau d'indices et je supprime la ligne correspondant (le d dans la fonction sed permet de supprimer et i de faire une modification permanentes)
         sed -i "${index}d" "$nameOfList"
-        echo "la tâche d'index : \"$index\" est supprimée de la liste $nameOfList "
+        echo "la tâche d'indice : \"$index\" est supprimée de la liste $nameOfList "
     done
 }
 
 #### move OPTION ####
 
-function calcSortedArr() {
-    array=("$@")
-    sortedArr=($(printf "%s\n" "${array[@]}" | sort))
-}
 # la fonction moveTask utilise les deux fonctions doneInListe et addToListe pour déplacer une tâche d'une liste a une autre
 function moveTask() {
     moveHandling "$@"
@@ -194,14 +208,15 @@ function moveTask() {
     shift
     shift
     # je fais appel a la fonction calcSortedArr pour m'aider a enregistrer les tâches à déplacer dans la variable tasksToMove
-    calcSortedArr "$@"
-
+    eraseDuplicateValues "$@"
+    calcSortedArr "${unique[@]}"
+    # j'ai trier les indices passer comme arguments pour que je puisse enregistrer tout les tâches
     declare -a tasksToMove
     # la variable i présente l'indice
     local i=1
     # la variable j présente l'indice du tableau sortedArr
     local j=0
-    # j'ai trier les indices passer comme arguments pour que je puisse enregistrer tout les tâches
+
     while read -r line; do
         # je teste si l'indice de la ligne égale a l'un des indices dans la variable sortedArr
         if [[ "$i" -eq ${sortedArr[$j]} ]]; then
@@ -212,13 +227,11 @@ function moveTask() {
 
         i=$((i + 1))
     done <"$nameOfFirstList"
+
     # j'ai le choix de faire la suppression avant l'addition vice versa
     addToListe "$nameOfSecondList" "${tasksToMove[@]}"
-
-    calcReversedSortedArr "$@"
-
+    calcReversedSortedArr "${unique[@]}"
     doneInListe "$nameOfFirstList" "${reversedSortedArr[@]}"
-
 }
 
 #### help OPTION ####
@@ -257,7 +270,7 @@ function createHandling() {
         echo "Un Dossier existe déja sous le nom $nameOfList" >&2
         exit 1
     elif [[ -f "$nameOfList" && -s "$nameOfList" ]]; then
-        echo "Un fichier sous le nom $nameOfList existe déja" >&2
+        echo "Un fichier non vide sous le nom $nameOfList existe déja" >&2
         exit 1
     fi
 }
@@ -274,13 +287,14 @@ function addHandling() {
     fileExistOrIsDirectory "$1"
 
     shift
+
+    checkArguments "$@"
     for task in "$@"; do
-        if [[ -z "$task" ]]; then
+        if [[ -z "$task" || $task = " " ]]; then
             echo "l'un des arguments est une chaîne vide"
             exit 1
         fi
     done
-    checkArguments "$@"
 }
 
 function doneHandling() {
@@ -289,8 +303,9 @@ function doneHandling() {
 
     shift
 
-    checkIndexInRange "$@"
     checkArguments "$@"
+    checkIndexType "$@"
+    checkIndexInRange "$@"
 }
 
 function moveHandling() {
@@ -301,10 +316,11 @@ function moveHandling() {
     shift
     shift
 
-    checkIndexInRange "$@"
     checkArguments "$@"
+    checkIndexType "$@"
+    checkIndexInRange "$@"
 }
-
+#la fonction fileExistOrIsDirectory permet de savoir si la liste passer comme argument existe
 function fileExistOrIsDirectory() {
     local nameOfList=$1
     if [[ ! -e "$nameOfList" ]]; then
@@ -316,14 +332,14 @@ function fileExistOrIsDirectory() {
         exit 1
     fi
 }
-
+# la fonction checkArguments permet de savoir si l'utilisateur a passée au moins un indice
 function checkArguments() {
-    if [[ "$#" -le 0 ]]; then
+    if [[ "$#" -eq 0 ]]; then
         echo "vous devez entrer au moins un indice comme argument" >&2
         exit 1
     fi
 }
-
+# la fonction checkIndexInRange permet de savoir si l'un des indices passer comme argument ne se trouve pas dans la liste
 function checkIndexInRange() {
     for index in "$@"; do
         if [[ "$index" -gt $numberOfLines ]]; then
@@ -332,10 +348,20 @@ function checkIndexInRange() {
         fi
     done
 }
+# la fonction checkIndexType permet de savoir si l'un des arguments est une chaîne de caractères
+function checkIndexType() {
+    local re='^[0-9]+$'
+    for index in "$@"; do
+        if ! [[ "$index" =~ $re ]]; then
+            echo "l'indice : \"$index\" est une chaîne de caractères et non pas un entier"
+            exit 1
+        fi
+    done
+}
 
 ####  MAIN ####
 #--------------------------------------------------
 # dès que l'utilisateur tappe une commande la premiére fonction qui s'execute est selectOption
-# chaque function qui se termine par Handling a pour but de gérer les erreurs
+# chaque fonction qui se termine par Handling a pour but de gérer les erreurs
 selectOption "$@"
 #--------------------------------------------------
