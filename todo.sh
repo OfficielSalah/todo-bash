@@ -1,49 +1,54 @@
 #! /bin/bash
 
+# des variables pour afficher la liste d'une facon filtrée
+filterNumber=0
+filter=0
+# des variables pour ajouter une tache a un indice bien précis
+addAt=0
+indexAt=0
+# des variables pour afficher la liste avec des couleurs
+dashColor="\e[31m"
+numberColor="\e[33m"
+dotsColor="\e[32m"
+endColor="\e[0m"
+
 # dans cette fonction je cherche quelle action l'utilisateur veut performer
 function selectOption() {
-    filterNumber=0
-    filter=0
-
-    dashColor="\e[31m"
-    numberColor="\e[33m"
-    dotsColor="\e[32m"
-    endColor="\e[0m"
-
     local option=$1
 
     case $option in
-    -c | create)
+    -c | --create)
         shift
         createListe "$@"
         ;;
-    -s | show)
+    -e | --erase)
+        shift
+        eraseListe "$@"
+        ;;
+    -s | --show)
         checkForFiltrage "$@"
         shift
         showListe "$@"
         ;;
-    -a | add)
+    -a | --add)
+        checkForIndex "$@"
         shift
-        addToListe "$@"
+        addToList "$@"
         ;;
-    -d | done)
+    -d | --done)
         shift
         doneInListe "$@"
         ;;
-    -e | erase)
-        shift
-        eraseListe "$@"
-        ;;
-    -m | move)
+    -m | --move)
         shift
         moveTask "$@"
         ;;
-    -h | help)
+    -h | --help)
         displayHelp
         ;;
     *)
-        echo "Usage: todo [OPTIONS] [LIST] [INDEX|ITEM]"
-        echo "Try todo 'help or -h' for more informations"
+        echo "Usage: todo [OPTIONS] LIST... [INDEX|ITEM]... [FLAG] [VALUE]"
+        echo "Try todo '--help or -h' for more informations"
         exit 1
         ;;
     esac
@@ -70,40 +75,6 @@ function eraseListe() {
 }
 
 #### show OPTION ####
-function checkForFiltrage() {
-    shift 2
-    local OPTIND
-    while getopts :n: flag; do
-        case $flag in
-        n)
-            if [[ -z $OPTARG || $OPTARG = " " ]]; then
-                echo "l'argument du flag $flag est une chaîne vide"
-                exit 1
-            fi
-            filterNumber=$OPTARG
-            filter=1
-            ;;
-        :)
-            echo "No options were passed for the flag $OPTARG"
-            exit 1
-            ;;
-        \?) ;;
-
-        esac
-
-    done
-}
-
-function filterDisplay() {
-    local i=1
-    while read -r line; do
-        echo -e "${numberColor}${i} ${dotsColor}|->${endColor} $line"
-        ((i++))
-        if [[ i -gt filterNumber ]]; then
-            break
-        fi
-    done <"$nameOfList"
-}
 
 function showListe() {
     showHandling "$1"
@@ -114,7 +85,7 @@ function showListe() {
         echo "(  )"
         echo " -- "
     elif [[ "$filter" -eq 1 ]]; then
-
+        #si l'utilisateur veut faire un affichage filtrée je fais appel a la fonction filterDisplay
         filterDisplay "$@"
     else
         # si la liste n'est pas vide et pas de filtrage je fais appel a la fonction displayList
@@ -141,7 +112,7 @@ function calcUppAndDown() {
             longestTask=${#line}
         fi
     done <"$nameOfList"
-    # je fais appel a la fonction calcNumberOfLines pour résoudre un probléme d'affichage lorsque le nombre de lignes dépasse 9 ligne
+    # je fais appel a la fonction calcNumberOfLines pour résoudre un probléme d'affichage lorsque le nombre de lignes dépasse 9 lignes
     calcNumberOfLines "$@"
     # je test si le nombre de ligne >10
     if [[ "$numberOfLines" -ge 10 ]]; then
@@ -167,7 +138,7 @@ function afficherTiret() {
 function displayList() {
     # afficherTiret permet d'afficher les tirets (-------) qui fait part de l'affichage mais avec une facon dynamique
     afficherTiret "$1"
-    #la variable i va me permettre de sauvgarder l'indece de chaque tâche
+    #la variable i va me permettre de sauvgarder l'indice de chaque tâche
     local i=1
 
     while read -r line; do
@@ -193,24 +164,141 @@ function displayList() {
     afficherTiret "$1"
 }
 
+#### filter OPTION ####
+
+function checkForFiltrage() {
+    #je saute les deux premier arguments qui présente l'option show et le nom de la liste
+    shift 2
+    #je vérifie si l'utilisateur veut faire un affichage avec filtrage en tapant le flag -n
+    local OPTIND
+    while getopts :n: flag; do
+        case $flag in
+        n)
+            if [[ -z $OPTARG || $OPTARG = " " ]]; then
+                echo "L'argument du flag $flag est une chaîne vide"
+                exit 1
+            elif [[ $OPTARG -eq 0 ]]; then
+                echo "L'argument du flag $flag doit être supérieur à 0 pour faire l'affichage"
+                exit 1
+            fi
+            checkIndexType "$OPTARG"
+            filterNumber=$OPTARG
+            filter=1
+            ;;
+        :)
+            echo "Aucun argument est passée à l'option : $OPTARG"
+            exit 1
+            ;;
+        \?)
+            echo "Option invalide : \"-$OPTARG\""
+            exit 1
+            ;;
+
+        esac
+
+    done
+}
+
+function filterDisplay() {
+    local i=1
+    echo "->Affichage Filtrée à $filterNumber lignes"
+    while read -r line; do
+        #je donne des couleurs pour les indices et la fléche(-e permet d'intérprétée ce qui vient aprés \)
+        echo -e "${numberColor}${i} ${dotsColor}|->${endColor} $line"
+        ((i++))
+        #si on arrive a la ligne indiqué par l'utilisateur on sort de la boucle
+        if [[ i -gt filterNumber ]]; then
+            break
+        fi
+    done <"$nameOfList"
+}
+
 #### add OPTION ####
 
-function addToListe() {
-    addHandling "$@"
-    local nameOfList=$1
-    # je fais un shift pour garder que les tâches à ajouter
-    shift
-    for task in "$@"; do
-        echo "$task" >>"$nameOfList"
-        echo "la tâche : \"$task\" est ajoutée à la liste $nameOfList"
+function addToList() {
+    if [[ "$addAt" -eq 1 ]]; then
+        addToListWithIndex "$@"
+    else
+        addHandling "$@"
+        local nameOfList=$1
+        # je fais un shift pour garder que les tâches à ajouter
+        shift
+        for task in "$@"; do
+            echo "$task" >>"$nameOfList"
+            echo "La tâche : \"$task\" est ajoutée à la liste $nameOfList"
+        done
+    fi
+}
+
+#### atIndex option ####
+
+function checkForIndex() {
+    #je saute les deux premier arguments qui présente l'option add et le nom de la liste
+    shift 2
+    #je vérifie si l'utilisateur veut ajouter une tache à un indice bien précis
+    local OPTIND
+    while getopts :i: flag; do
+        case $flag in
+        i)
+            if [[ -z $OPTARG || $OPTARG = " " ]]; then
+                echo "L'argument du flag $flag est une chaîne vide"
+                exit 1
+            fi
+            checkIndexType "$OPTARG"
+            addAt=1
+            indexAt=$OPTARG
+            ;;
+        :)
+            echo "No options were passed to the flag $OPTARG"
+            exit 1
+            ;;
+        \?)
+            echo "Option invalide : \"-$OPTARG\""
+            exit 1
+            ;;
+
+        esac
+
     done
+}
+
+function addToListWithIndex() {
+    local nameOfList=$1
+    fileExistOrIsDirectory "$1"
+
+    shift
+    #je verifie si l'utilisateur a fait passée la tache comme argument
+    if [[ "$#" -lt 3 ]]; then
+        echo "Vous devez entrer au moins un argument " >&2
+        exit 1
+    fi
+    # je garde que la tache
+    shift 2
+
+    calcNumberOfLines "$nameOfList"
+    ((numberOfLines++))
+
+    if [[ $indexAt -gt $numberOfLines ]]; then
+        echo "L'indice : \"$indexAt\" est plus grand que le nombre de lignes de la liste $nameOfList"
+        exit 1
+    elif [[ $indexAt -eq 0 ]]; then
+        echo "L'indice : \"$indexAt\" doit être positive et plus grand que 0"
+        exit 1
+    elif [[ $indexAt -eq 1 ]]; then
+        sed -i "1i$1" "$nameOfList"
+        echo "La tache \"$1\" est ajoutée à la liste $nameOfList au début"
+    else
+        ((indexAt--))
+        sed -i "${indexAt} a $1" "$nameOfList"
+        echo "La tache \"$1\" est ajoutée à la liste $nameOfList à la ligne $((indexAt + 1))"
+    fi
 }
 #### sort Functions ####
 
 function eraseDuplicateValues() {
     # cette fonction va me permettre d'éleminer les éléments dupliquées (1 2 2 3) devient (1 2 3)
     local array=("$@")
-    #printf permet de lister les différentes indexs dans la variable array(-u pour éleminer les éléments dupliquées)
+    #printf permet de lister les différentes indices dans la variable array(-u pour éleminer les éléments dupliquées)
     unique=($(printf "%s\n" "${array[@]}" | sort -u))
 }
 
@@ -218,13 +306,13 @@ function calcReversedSortedArr() {
     # cette fonction va me permettre d'avoir un tableau d'indices trier d'une facon inverse (3 5 1) devient (5 3 1)
     local array=("$@")
     # (-r pour trier d'une facon inverse)
-    reversedSortedArr=($(printf "%s\n" "${array[@]}" | sort -r))
+    reversedSortedArr=($(printf "%s\n" "${array[@]}" | sort -nr))
 }
 
 function calcSortedArr() {
     # cette fonction va me permettre d'avoir un tableau d'indices trier d'une facon (3 5 1) devient (1 3 5)
     local array=("$@")
-    sortedArr=($(printf "%s\n" "${array[@]}" | sort))
+    sortedArr=($(printf "%s\n" "${array[@]}" | sort -n))
 }
 
 #### done OPTION ####
@@ -240,18 +328,18 @@ function doneInListe() {
     for index in "${reversedSortedArr[@]}"; do
         # je boucle sur le tableau d'indices et je supprime la ligne correspondant (le d dans la fonction sed permet de supprimer et i de faire une modification permanentes)
         sed -i "${index}d" "$nameOfList"
-        echo "la tâche d'indice : \"$index\" est supprimée de la liste $nameOfList "
+        echo "La tâche d'indice : \"$index\" est supprimée de la liste $nameOfList "
     done
 }
 
 #### move OPTION ####
 
-# la fonction moveTask utilise les deux fonctions doneInListe et addToListe pour déplacer une tâche d'une liste a une autre
+# la fonction moveTask utilise les deux fonctions doneInListe et addToList pour déplacer une tâche d'une liste a une autre
 function moveTask() {
     moveHandling "$@"
     local nameOfFirstList=$1
     local nameOfSecondList=$2
-    # la fonction doneInListe travaille avec des indices alors que la fonction addToListe travaille avec des chaînes de caractéres alors il faut trouver la chaine de caractére qui correspend à chaque indice
+    # la fonction doneInListe travaille avec des indices alors que la fonction addToList travaille avec des chaînes de caractéres alors il faut trouver la chaine de caractére qui correspend à chaque indice
     # deux shift pour garder que les indices
     shift 2
     # je fais appel a la fonction calcSortedArr pour m'aider a enregistrer les tâches à déplacer dans la variable tasksToMove
@@ -276,7 +364,7 @@ function moveTask() {
     done <"$nameOfFirstList"
 
     # j'ai le choix de faire la suppression avant l'addition vice versa
-    addToListe "$nameOfSecondList" "${tasksToMove[@]}"
+    addToList "$nameOfSecondList" "${tasksToMove[@]}"
     calcReversedSortedArr "${unique[@]}"
     doneInListe "$nameOfFirstList" "${reversedSortedArr[@]}"
 }
@@ -284,29 +372,38 @@ function moveTask() {
 #### help OPTION ####
 # une fonction qui va permettre d'afficher un manuel de la commande ./todo.sh
 function displayHelp() {
-    printf "@Usage: todo [OPTIONS] [LIST] [INDEX|ITEM]
+    printf "@Usage: todo [OPTIONS] LIST... [INDEX|ITEM]... [FLAG] [VALUE]
 
 @OPTIONS:
-    -h,help Show help message.
-    -c,create Create a new list.
-    -e,erase Erase list.
-    -a,add Add an item to the list.
-    -d,done Remove an item from the list by INDEX number.
-    -m,move Move task from list to the end of another list.
-    -s,show Display the list.
+    -h,--help | Show help message.
+    -c,--create | Create a new list.
+    -e,--erase | Erase list.
+    -s,--show | Display the list.
+    -a,--add | Add an item to the list.
+    -d,--done | Remove an item from the list by INDEX number.
+    -m,--move | Move task from list to the end of another list.
 @LIST:
     Name of list.
 @INDEX:
     Integers:Index number of item.
 @ITEM:
     String Todo ITEM.
+@FLAG:  Depends on the option
+    -n | Filtring the display (display n lines)
+    -i | Add task at a spisific index
+@VALUE:
+    integers
 @EXAMPLES:
-    todo create list5
+    todo --create list5
             Create list under the name list5.
     todo -a list5 \"Something to do\"
             add \"Something to do\" to list5
-    todo show list5
+    todo --show list5
             list all the task in the list5.
+    todo -s list5 -n 5
+            display the fifth first lines on list5
+    todo -a list5 -i 5 \"yeey\"
+            add \"yeey\" to list5 at the index 5
 "
 }
 
@@ -319,7 +416,7 @@ function createHandling() {
         echo "Un fichier non vide sous le nom $1 existe déja" >&2
         exit 1
     elif [[ -z "$1" || $1 = " " ]]; then
-        echo "l'un des arguments est une chaîne vide"
+        echo "L'un des arguments est une chaîne vide"
         exit 1
     fi
 }
@@ -341,7 +438,7 @@ function addHandling() {
     # tester si l'un des arguments est une chaîne vide ou contient qu'un espace
     for task in "$@"; do
         if [[ -z "$task" || $task = " " ]]; then
-            echo "l'un des arguments est une chaîne vide"
+            echo "L'un des arguments est une chaîne vide"
             exit 1
         fi
     done
@@ -372,17 +469,17 @@ function moveHandling() {
 #la fonction fileExistOrIsDirectory permet de savoir si la liste passer comme argument existe
 function fileExistOrIsDirectory() {
     if [[ ! -e "$1" ]]; then
-        echo "la liste \"$1\" n'existe pas" >&2
+        echo "La liste \"$1\" n'existe pas" >&2
         exit 1
     elif [[ -d "$1" ]]; then
-        echo "la liste \"$1\" est actuellement un dossier" >&2
+        echo "La liste \"$1\" est actuellement un dossier" >&2
         exit 1
     fi
 }
-# la fonction checkArguments permet de savoir si l'utilisateur a passée au moins un indice
+# la fonction checkArguments permet de savoir si l'utilisateur a passée au moins un argument
 function checkArguments() {
     if [[ "$#" -eq 0 ]]; then
-        echo "vous devez entrer au moins un indice comme argument" >&2
+        echo "Vous devez entrer au moins un argument" >&2
         exit 1
     fi
 }
@@ -393,14 +490,18 @@ function checkIndexInRange() {
             echo "Aucun tâche ne correspond à l'indice : \"$index\" "
             exit 1
         fi
+        if [[ "$index" -eq 0 ]]; then
+            echo "L'indice : \"$index\" doit être positive et plus grand que 0"
+            exit 1
+        fi
     done
 }
 # la fonction checkIndexType permet de savoir si l'un des arguments est une chaîne de caractères
 function checkIndexType() {
-    local re='^[0-9]+$'
+    local regex='^[0-9]+$'
     for index in "$@"; do
-        if ! [[ "$index" =~ $re ]]; then
-            echo "l'indice : \"$index\" est une chaîne de caractères et non pas un entier"
+        if ! [[ "$index" =~ $regex ]]; then
+            echo "L'indice : \"$index\" est une chaîne de caractères et non pas un entier"
             exit 1
         fi
     done
@@ -408,7 +509,7 @@ function checkIndexType() {
 
 ####  MAIN ####
 #--------------------------------------------------
-# dès que l'utilisateur tappe une commande la premiére fonction qui s'execute est selectOption
-# chaque fonction qui se termine par Handling a pour but de gérer les erreurs
+# dès que l'utilisateur tape une commande la premiére fonction qui s'execute est selectOption
 selectOption "$@"
 #--------------------------------------------------
+# chaque fonction qui se termine par Handling a pour but de gérer les erreurs
