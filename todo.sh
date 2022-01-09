@@ -2,13 +2,23 @@
 
 # dans cette fonction je cherche quelle action l'utilisateur veut performer
 function selectOption() {
+    filterNumber=0
+    filter=0
+
+    dashColor="\e[31m"
+    numberColor="\e[33m"
+    dotsColor="\e[32m"
+    endColor="\e[0m"
+
     local option=$1
+
     case $option in
     -c | create)
-        shift # shift permet de sauter un argument
+        shift
         createListe "$@"
         ;;
     -s | show)
+        checkForFiltrage "$@"
         shift
         showListe "$@"
         ;;
@@ -32,7 +42,8 @@ function selectOption() {
         displayHelp
         ;;
     *)
-        echo "Veuillez voir le manuel d'utilisation car l'option : \"$option\" n'est pas inclu"
+        echo "Usage: todo [OPTIONS] [LIST] [INDEX|ITEM]"
+        echo "Try todo 'help or -h' for more informations"
         exit 1
         ;;
     esac
@@ -59,32 +70,69 @@ function eraseListe() {
 }
 
 #### show OPTION ####
+function checkForFiltrage() {
+    shift 2
+    local OPTIND
+    while getopts :n: flag; do
+        case $flag in
+        n)
+            if [[ -z $OPTARG || $OPTARG = " " ]]; then
+                echo "l'argument du flag $flag est une chaîne vide"
+                exit 1
+            fi
+            filterNumber=$OPTARG
+            filter=1
+            ;;
+        :)
+            echo "No options were passed for the flag $OPTARG"
+            exit 1
+            ;;
+        \?) ;;
+
+        esac
+
+    done
+}
+
+function filterDisplay() {
+    local i=1
+    while read -r line; do
+        echo -e "${numberColor}${i} ${dotsColor}|->${endColor} $line"
+        ((i++))
+        if [[ i -gt filterNumber ]]; then
+            break
+        fi
+    done <"$nameOfList"
+}
 
 function showListe() {
     showHandling "$1"
     nameOfList=$1
-    # je teste si le liste est vide
+    # je teste si la liste est vide
     if [[ ! -s "$nameOfList" ]]; then
         echo " -- "
         echo "(  )"
         echo " -- "
+    elif [[ "$filter" -eq 1 ]]; then
+
+        filterDisplay "$@"
     else
-        # si la liste n'est pas vide je fais appel a la fonction displayList
+        # si la liste n'est pas vide et pas de filtrage je fais appel a la fonction displayList
         displayList "$1"
     fi
 }
 # cette fonction va m'aider à résoudre le problème d'un fichier qui contient plus de 10 ligne parceque les nombres < 10 prend qu'un seul espace alors que >10 prend 2 espace
 function calcNumberOfLines() {
-    # la variable numberOfLines va me permettre de stocker le nombre de ligne d'un fichier (numberOfLines initialisée a 0)
+    # la variable numberOfLines va me permettre de stocker le nombre de ligne d'un fichier
     numberOfLines=0
     while read -r line; do
-        # chaque fois j'incrémente la variable numberOfLines jusqu'à ce que le fichier est parcoru
-        numberOfLines=$((numberOfLines + 1))
+        # chaque fois j'incrémente la variable numberOfLines jusqu'à ce que le fichier est parcouru
+        ((numberOfLines++))
     done <"$1"
 }
 
 function calcUppAndDown() {
-    # la variable longestTask va me permettre de stocker la longeur de la plus long tâche (longestTask initialisée a 0)
+    # la variable longestTask va me permettre de stocker la longeur de la plus long tâche
     local longestTask=0
     # je parcours le fichier qui porte le même nom que la liste ligne par ligne par la fonction read
     while read -r line; do
@@ -105,15 +153,15 @@ function calcUppAndDown() {
 }
 
 function afficherTiret() {
-    echo -n " "
     # pour savoir le nombre de tirets a afficher je fais appel a la fonction calcUppAndDown
     calcUppAndDown "$1"
+    echo -en " ${dashColor}"
     local i=0
     # je printe les tirets
     for ((i; i < "$uppAndDown"; i++)); do
         echo -n "-"
     done
-    echo " "
+    echo -e " ${endColor}"
 }
 
 function displayList() {
@@ -124,7 +172,7 @@ function displayList() {
 
     while read -r line; do
         # j'affiche la premier partie de la ligne qui présente la tâche
-        echo -n "(  ${i}. $line"
+        echo -en "(  ${numberColor}${i}${dotsColor}.${endColor} $line"
         # je teste si j'arrive à la ligne numéro 10
         if [[ "$i" -le 9 ]]; then
             # toujours du calcul mathématique pour avoir un affichage disant parfait
@@ -139,7 +187,7 @@ function displayList() {
             echo -n " "
         done
         echo ")"
-        i=$((i + 1))
+        ((i++))
     done <"$nameOfList"
 
     afficherTiret "$1"
@@ -205,8 +253,7 @@ function moveTask() {
     local nameOfSecondList=$2
     # la fonction doneInListe travaille avec des indices alors que la fonction addToListe travaille avec des chaînes de caractéres alors il faut trouver la chaine de caractére qui correspend à chaque indice
     # deux shift pour garder que les indices
-    shift
-    shift
+    shift 2
     # je fais appel a la fonction calcSortedArr pour m'aider a enregistrer les tâches à déplacer dans la variable tasksToMove
     eraseDuplicateValues "$@"
     calcSortedArr "${unique[@]}"
@@ -222,10 +269,10 @@ function moveTask() {
         if [[ "$i" -eq ${sortedArr[$j]} ]]; then
             # j'ajoute la ligne qui correspend a l'indice au variable tasksToMove
             tasksToMove[${#tasksToMove[@]}]=$line
-            j=$((j + 1))
+            ((j++))
         fi
 
-        i=$((i + 1))
+        ((i++))
     done <"$nameOfFirstList"
 
     # j'ai le choix de faire la suppression avant l'addition vice versa
@@ -237,7 +284,7 @@ function moveTask() {
 #### help OPTION ####
 # une fonction qui va permettre d'afficher un manuel de la commande ./todo.sh
 function displayHelp() {
-    printf "@Usage: ./todo.sh [OPTIONS] [LIST] [INDEX|ITEM]
+    printf "@Usage: todo [OPTIONS] [LIST] [INDEX|ITEM]
 
 @OPTIONS:
     -h,help Show help message.
@@ -254,23 +301,25 @@ function displayHelp() {
 @ITEM:
     String Todo ITEM.
 @EXAMPLES:
-    ./todo.sh create list5
+    todo create list5
             Create list under the name list5.
-    ./todo.sh -a list5 \"Something to do\"
+    todo -a list5 \"Something to do\"
             add \"Something to do\" to list5
-    ./todo.sh show list5
+    todo show list5
             list all the task in the list5.
 "
 }
 
 #### Exception Handling ####
 function createHandling() {
-    local nameOfList=$1
-    if [[ -d "$nameOfList" ]]; then
-        echo "Un Dossier existe déja sous le nom $nameOfList" >&2
+    if [[ -d "$1" ]]; then
+        echo "Un Dossier existe déja sous le nom $1" >&2
         exit 1
-    elif [[ -f "$nameOfList" && -s "$nameOfList" ]]; then
-        echo "Un fichier non vide sous le nom $nameOfList existe déja" >&2
+    elif [[ -f "$1" && -s "$1" ]]; then
+        echo "Un fichier non vide sous le nom $1 existe déja" >&2
+        exit 1
+    elif [[ -z "$1" || $1 = " " ]]; then
+        echo "l'un des arguments est une chaîne vide"
         exit 1
     fi
 }
@@ -289,6 +338,7 @@ function addHandling() {
     shift
 
     checkArguments "$@"
+    # tester si l'un des arguments est une chaîne vide ou contient qu'un espace
     for task in "$@"; do
         if [[ -z "$task" || $task = " " ]]; then
             echo "l'un des arguments est une chaîne vide"
@@ -313,8 +363,7 @@ function moveHandling() {
     fileExistOrIsDirectory "$2"
     calcNumberOfLines "$1"
 
-    shift
-    shift
+    shift 2
 
     checkArguments "$@"
     checkIndexType "$@"
@@ -322,13 +371,11 @@ function moveHandling() {
 }
 #la fonction fileExistOrIsDirectory permet de savoir si la liste passer comme argument existe
 function fileExistOrIsDirectory() {
-    local nameOfList=$1
-    if [[ ! -e "$nameOfList" ]]; then
-        echo "la liste \"$nameOfList\" n'existe pas" >&2
+    if [[ ! -e "$1" ]]; then
+        echo "la liste \"$1\" n'existe pas" >&2
         exit 1
-    fi
-    if [[ -d "$nameOfList" ]]; then
-        echo "la liste \"$nameOfList\" est actuellement un dossier" >&2
+    elif [[ -d "$1" ]]; then
+        echo "la liste \"$1\" est actuellement un dossier" >&2
         exit 1
     fi
 }
