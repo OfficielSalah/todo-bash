@@ -43,7 +43,7 @@ A bash script that manages todo lists using lots of functionalities
     String Todo ITEM.
 @FLAG:  Depends on the option
     -n | Filtring the display (display n lines)
-    -i | Add task at a spisific index
+    -i | Add task at a spesific index
 @VALUE:
     integers
 @EXAMPLES:
