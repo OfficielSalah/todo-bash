@@ -7,10 +7,10 @@ filter=0
 addAt=0
 indexAt=0
 # des variables pour afficher la liste avec des couleurs
-dashColor="\e[31m"
-numberColor="\e[33m"
-dotsColor="\e[32m"
-endColor="\e[0m"
+dashColor="\e[31m"   # rouge
+numberColor="\e[33m" # jaune
+dotsColor="\e[32m"   # vert
+endColor="\e[0m"     # aucun couleur spécifié
 
 # dans cette fonction je cherche quelle action l'utilisateur veut performer
 function selectOption() {
@@ -175,10 +175,10 @@ function checkForFiltrage() {
         case $flag in
         n)
             if [[ -z $OPTARG || $OPTARG = " " ]]; then
-                echo "L'argument du flag $flag est une chaîne vide"
+                echo "L'argument du flag $flag est une chaîne vide" >&2
                 exit 1
             elif [[ $OPTARG -eq 0 ]]; then
-                echo "L'argument du flag $flag doit être supérieur à 0 pour faire l'affichage"
+                echo "L'argument du flag $flag doit être supérieur à 0 pour faire l'affichage" >&2
                 exit 1
             fi
             checkIndexType "$OPTARG"
@@ -186,11 +186,11 @@ function checkForFiltrage() {
             filter=1
             ;;
         :)
-            echo "Aucun argument est passée à l'option : $OPTARG"
+            echo "Aucun argument est passée à l'option : $OPTARG" >&2
             exit 1
             ;;
         \?)
-            echo "Option invalide : \"-$OPTARG\""
+            echo "Option invalide : \"-$OPTARG\"" >&2
             exit 1
             ;;
 
@@ -241,7 +241,7 @@ function checkForIndex() {
         case $flag in
         i)
             if [[ -z $OPTARG || $OPTARG = " " ]]; then
-                echo "L'argument du flag $flag est une chaîne vide"
+                echo "L'argument du flag $flag est une chaîne vide" >&2
                 exit 1
             fi
             checkIndexType "$OPTARG"
@@ -249,11 +249,11 @@ function checkForIndex() {
             indexAt=$OPTARG
             ;;
         :)
-            echo "No options were passed to the flag $OPTARG"
+            echo "No options were passed to the flag $OPTARG" >&2
             exit 1
             ;;
         \?)
-            echo "Option invalide : \"-$OPTARG\""
+            echo "Option invalide : \"-$OPTARG\"" >&2
             exit 1
             ;;
 
@@ -279,10 +279,10 @@ function addToListWithIndex() {
     ((numberOfLines++))
 
     if [[ $indexAt -gt $numberOfLines ]]; then
-        echo "L'indice : \"$indexAt\" est plus grand que le nombre de lignes de la liste $nameOfList"
+        echo "L'indice : \"$indexAt\" est plus grand que le nombre de lignes de la liste $nameOfList" >&2
         exit 1
     elif [[ $indexAt -eq 0 ]]; then
-        echo "L'indice : \"$indexAt\" doit être positive et plus grand que 0"
+        echo "L'indice : \"$indexAt\" doit être positive et plus grand que 0" >&2
         exit 1
     elif [[ $indexAt -eq 1 ]]; then
         sed -i "1i$1" "$nameOfList"
@@ -416,7 +416,7 @@ function createHandling() {
         echo "Un fichier non vide sous le nom $1 existe déja" >&2
         exit 1
     elif [[ -z "$1" || $1 = " " ]]; then
-        echo "L'un des arguments est une chaîne vide"
+        echo "L'un des arguments est une chaîne vide" >&2
         exit 1
     fi
 }
@@ -438,7 +438,7 @@ function addHandling() {
     # tester si l'un des arguments est une chaîne vide ou contient qu'un espace
     for task in "$@"; do
         if [[ -z "$task" || $task = " " ]]; then
-            echo "L'un des arguments est une chaîne vide"
+            echo "L'un des arguments est une chaîne vide" >&2
             exit 1
         fi
     done
@@ -476,6 +476,7 @@ function fileExistOrIsDirectory() {
         exit 1
     fi
 }
+
 # la fonction checkArguments permet de savoir si l'utilisateur a passée au moins un argument
 function checkArguments() {
     if [[ "$#" -eq 0 ]]; then
@@ -487,11 +488,11 @@ function checkArguments() {
 function checkIndexInRange() {
     for index in "$@"; do
         if [[ "$index" -gt $numberOfLines ]]; then
-            echo "Aucun tâche ne correspond à l'indice : \"$index\" "
+            echo "Aucun tâche ne correspond à l'indice : \"$index\" " >&2
             exit 1
         fi
         if [[ "$index" -eq 0 ]]; then
-            echo "L'indice : \"$index\" doit être positive et plus grand que 0"
+            echo "L'indice : \"$index\" doit être positive et plus grand que 0" >&2
             exit 1
         fi
     done
@@ -501,7 +502,7 @@ function checkIndexType() {
     local regex='^[0-9]+$'
     for index in "$@"; do
         if ! [[ "$index" =~ $regex ]]; then
-            echo "L'indice : \"$index\" est une chaîne de caractères et non pas un entier"
+            echo "L'indice : \"$index\" est une chaîne de caractères et non pas un entier" >&2
             exit 1
         fi
     done

@@ -60,6 +60,8 @@ A bash script that manages todo lists using lots of functionalities
             add \"yeey\" to list5 at the index 5
 ```
 
+> To add a task at a specefic index the syntax should be like the following : todo -a [LIST] -i [INDEX] [TASK]
+
 ## Screenshots
 
 ![Bash Todo Demo](images/demo.png)
